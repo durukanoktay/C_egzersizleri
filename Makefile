@@ -12,15 +12,7 @@ TARGET_DIR = bin
 TARGET = $(TARGET_DIR)/main
 
 # Kaynak dosyalar
-SRCS = src/main.c \
-src/hwinfo.c \
-src/cpu.c \
-src/gpu.c \
-src/storage.c \
-src/swinfo.c \
-src/user.c \
-src/de.c \
-src/system.c
+SRCS = src/main.c src/hwinfo.c src/cpu.c src/gpu.c src/storage.c src/swinfo.c src/user.c src/de.c src/system.c
 
 # Nesne dosyaları (kaynak dosyalar ile aynı ada sahip .o dosyaları)
 OBJS = $(SRCS:.c=.o)

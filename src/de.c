@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <ncurses.h>
+#include "/usr/x86_64-w64-mingw32/include/ncursesw/ncurses.h"
 #include "../inc/de.h"
 
 void displayDEInfo() {
