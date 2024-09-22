@@ -1,9 +1,10 @@
-#include <stdio.h>
-#include <string.h>
+#include "../inc/gpu.h"
 #include <ncurses.h>
-#include "user.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
-void displayUserInfo() {
+void displayGpuInfo() {
     initscr();
     noecho();
     curs_set(FALSE);
@@ -33,40 +34,50 @@ void displayUserInfo() {
     WINDOW *pad = newpad(padHeight, padWidth);
 
     int line = 0;
-    mvwprintw(pad, line++, 1, "User Information: ");
+    mvwprintw(pad, line++, 1, "GPU Information: ");
     line++;
 
-    FILE* envPipe = popen("env", "r");
-    if (envPipe) {
-        char envBuffer[256];
-        char user[256] = "";
-        char hostname[256] = "";
-        char homeFolder[256] = "";
-        char shell[256] = "";
-
-        while (fgets(envBuffer, sizeof(envBuffer), envPipe)) {
+    FILE* gpuPipe = popen("nvidia-smi --query-gpu=name,driver_version,memory.total,memory.used,memory.free,utilization.gpu,utilization.memory,temperature.gpu --format=csv,noheader,nounits", "r");    
+    if (gpuPipe) {
+        char gpuBuffer[256];
+        char gpuVendor[256] = "NVIDIA"; // Assuming NVIDIA as the vendor
+        char gpuModel[256] = "";
+        char driverVersion[256] = "";
+        int memoryTotal = 0;
+        int memoryUsed = 0;
+        int memoryFree = 0;
+        int utilizationGpu = 0;
+        int utilizationMemory = 0;
+        int temperatureGpu = 0;
+    
+        while (fgets(gpuBuffer, sizeof(gpuBuffer), gpuPipe)) {
             // Trim newline character if present
-            envBuffer[strcspn(envBuffer, "\n")] = 0;
-
-            // Parse the environment variable
-            if (strncmp(envBuffer, "USER=", 5) == 0) {
-                strncpy(user, envBuffer + 5, sizeof(user) - 1);
-            } else if (strncmp(envBuffer, "HOSTNAME=", 9) == 0) {
-                strncpy(hostname, envBuffer + 9, sizeof(hostname) - 1);
-            } else if (strncmp(envBuffer, "HOME=", 5) == 0) {
-                strncpy(homeFolder, envBuffer + 5, sizeof(homeFolder) - 1);
-            } else if (strncmp(envBuffer, "SHELL=", 6) == 0) {
-                strncpy(shell, envBuffer + 6, sizeof(shell) - 1);
-            }
+            gpuBuffer[strcspn(gpuBuffer, "\n")] = 0;
+    
+            // Parse the CSV line
+            sscanf(gpuBuffer, "%[^,], %[^,], %d, %d, %d, %d, %d, %d",
+                   gpuModel, driverVersion, &memoryTotal, &memoryUsed, &memoryFree,
+                   &utilizationGpu, &utilizationMemory, &temperatureGpu);
         }
-        pclose(envPipe);
-
-        mvwprintw(pad, line++, 1, "User: %s", user);
-        mvwprintw(pad, line++, 1, "Hostname: %s", hostname);
-        mvwprintw(pad, line++, 1, "Home Folder: %s", homeFolder);
-        mvwprintw(pad, line++, 1, "Shell: %s", shell); // Add shell information
+        pclose(gpuPipe);
+    
+        // Remove "NVIDIA " prefix from gpuModel if present
+        if (strncmp(gpuModel, "NVIDIA ", 7) == 0) {
+            memmove(gpuModel, gpuModel + 7, strlen(gpuModel) - 6);
+        }
+    
+        // Print GPU information within the pad
+        mvwprintw(pad, line++, 1, "GPU Vendor: %s", gpuVendor);
+        mvwprintw(pad, line++, 1, "GPU Model: %s", gpuModel);
+        mvwprintw(pad, line++, 1, "Driver Version: %s", driverVersion);
+        mvwprintw(pad, line++, 1, "Total Memory: %d MiB", memoryTotal);
+        mvwprintw(pad, line++, 1, "Used Memory: %d MiB", memoryUsed);
+        mvwprintw(pad, line++, 1, "Free Memory: %d MiB", memoryFree);
+        mvwprintw(pad, line++, 1, "GPU Utilization: %d%%", utilizationGpu);
+        mvwprintw(pad, line++, 1, "Memory Utilization: %d%%", utilizationMemory);
+        mvwprintw(pad, line++, 1, "GPU Temperature: %d°C", temperatureGpu);
     } else {
-        mvwprintw(pad, line++, 1, "Failed to retrieve environment information");
+        mvwprintw(pad, line++, 1, "Failed to retrieve GPU information");
     }
 
     // Refresh the pad to show the changes within padWin

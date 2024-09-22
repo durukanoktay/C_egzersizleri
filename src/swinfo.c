@@ -1,9 +1,9 @@
 #include <ncurses.h>
 #include <stdlib.h>
-#include "swinfo.h"
-#include "user.h"
-#include "system.h"
-#include "de.h"
+#include "../inc/swinfo.h"
+#include "../inc/user.h"
+#include "../inc/system.h"
+#include "../inc/de.h"
 
 // Function to display software information
 void displaySoftwareInfo() {

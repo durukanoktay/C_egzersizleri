@@ -1,6 +1,6 @@
 #include <ncurses.h>
-#include "swinfo/swinfo.h"
-#include "hwinfo/hwinfo.h"
+#include "../inc/swinfo.h"
+#include "../inc/hwinfo.h"
 
 int main() {
     // Initialize ncurses

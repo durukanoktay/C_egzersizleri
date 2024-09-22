@@ -1,10 +1,10 @@
-#include "storage.h"
-#include <ncurses.h>
 #include <stdio.h>
-#include <stdlib.h> 
+#include <stdlib.h>
 #include <string.h>
+#include <ncurses.h>
+#include "../inc/system.h"
 
-void displayStorageInfo() {
+void displaySystemInfo() {
     initscr();
     noecho();
     curs_set(FALSE);
@@ -34,43 +34,36 @@ void displayStorageInfo() {
     WINDOW *pad = newpad(padHeight, padWidth);
 
     int line = 0;
-    mvwprintw(pad, line++, 1, "Storage Information: ");
+    mvwprintw(pad, line++, 1, "User Information: ");
     line++;
 
-    FILE *storagePipe = popen("lsblk --fs -J -o LABEL,FSTYPE,SIZE,FSAVAIL,MOUNTPOINT | jq -r '.blockdevices[] | select(.mountpoint != null and (.mountpoint | test(\"^(\\/$|\\/mnt(\\/|$)|\\/boot(\\/|$)|\\/efi(\\/|$)|\\/media(\\/|$)|\\/run\\/media(\\/|$))\"))) | \"Mountpoint: \\(.mountpoint), Size: \\(.size), fsavail: \\(.fsavail), Label: \\(.label), Fstype: \\(.fstype)\"'", "r");
-    if (storagePipe) {
-        char buffer[256];
-        int partitionCount = 1;
-        while (fgets(buffer, sizeof(buffer), storagePipe)) {
+    FILE* systemPipe = popen("cat /etc/os-release | grep -w \"NAME\"", "r");
+    if (systemPipe) {
+        char systemBuffer[256];
+        char osName[256] = "";
+
+        while (fgets(systemBuffer, sizeof(systemBuffer), systemPipe)) {
             // Trim newline character if present
-            buffer[strcspn(buffer, "\n")] = 0;
-    
-            // Parse the line using strtok with comma as delimiter
-            char *mountpoint = strtok(buffer, ",");
-            char *size = strtok(NULL, ",");
-            char *fsavail = strtok(NULL, ",");
-            char *label = strtok(NULL, ",");
-            char *fstype = strtok(NULL, ",");
-    
-            // Remove the field names from the values
-            mountpoint = strchr(mountpoint, ':') + 2;
-            size = strchr(size, ':') + 2;
-            fsavail = strchr(fsavail, ':') + 2;
-            label = strchr(label, ':') + 2;
-            fstype = strchr(fstype, ':') + 2;
-    
-            // Print the partition information
-            mvwprintw(pad, line++, 1, "Partition %d:", partitionCount++);
-            mvwprintw(pad, line++, 1, "Name: %s", label);
-            mvwprintw(pad, line++, 1, "Filesystem Type: %s", fstype);
-            mvwprintw(pad, line++, 1, "Disk Size: %s", size);
-            mvwprintw(pad, line++, 1, "Free Space: %s", fsavail);
-            mvwprintw(pad, line++, 1, "Mount Point: %s", mountpoint);
-            line++; // Add an empty line between partitions
+            systemBuffer[strcspn(systemBuffer, "\n")] = 0;
+
+            // Parse the OS name
+            if (strncmp(systemBuffer, "NAME=", 5) == 0) {
+                strncpy(osName, systemBuffer + 6, sizeof(osName) - 1);
+                // Remove surrounding quotes if present
+                if (osName[0] == '"' && osName[strlen(osName) - 1] == '"') {
+                    memmove(osName, osName + 1, strlen(osName) - 2);
+                    osName[strlen(osName) - 2] = '\0';
+                } else if (osName[strlen(osName) - 1] == '"') {
+                    osName[strlen(osName) - 1] = '\0';
+                }
+            }
         }
-        pclose(storagePipe);
+        pclose(systemPipe);
+
+        // Print system information within the pad
+        mvwprintw(pad, line++, 1, "OS Name: %s", osName);
     } else {
-        mvwprintw(pad, line++, 1, "Failed to retrieve Storage information.");
+        mvwprintw(pad, line++, 1, "Failed to retrieve system information");
     }
 
     // Refresh the pad to show the changes within padWin

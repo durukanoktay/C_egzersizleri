@@ -1,9 +1,9 @@
 #include <ncurses.h>
 #include <stdlib.h>
-#include "hwinfo.h"
-#include "cpu.h"
-#include "gpu.h"
-#include "storage.h"
+#include "../inc/hwinfo.h"
+#include "../inc/cpu.h"
+#include "../inc/gpu.h"
+#include "../inc/storage.h"
 
 // Function to display the hardware information menu
 void displayHardwareInfo() {

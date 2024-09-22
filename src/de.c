@@ -1,10 +1,10 @@
-#include "gpu.h"
-#include <ncurses.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <ncurses.h>
+#include "../inc/de.h"
 
-void displayGpuInfo() {
+void displayDEInfo() {
     initscr();
     noecho();
     curs_set(FALSE);
@@ -34,50 +34,53 @@ void displayGpuInfo() {
     WINDOW *pad = newpad(padHeight, padWidth);
 
     int line = 0;
-    mvwprintw(pad, line++, 1, "GPU Information: ");
+    mvwprintw(pad, line++, 1, "Desktop Environment Information: ");
     line++;
 
-    FILE* gpuPipe = popen("nvidia-smi --query-gpu=name,driver_version,memory.total,memory.used,memory.free,utilization.gpu,utilization.memory,temperature.gpu --format=csv,noheader,nounits", "r");    
-    if (gpuPipe) {
-        char gpuBuffer[256];
-        char gpuVendor[256] = "NVIDIA"; // Assuming NVIDIA as the vendor
-        char gpuModel[256] = "";
-        char driverVersion[256] = "";
-        int memoryTotal = 0;
-        int memoryUsed = 0;
-        int memoryFree = 0;
-        int utilizationGpu = 0;
-        int utilizationMemory = 0;
-        int temperatureGpu = 0;
-    
-        while (fgets(gpuBuffer, sizeof(gpuBuffer), gpuPipe)) {
+    FILE* dePipe = popen("env", "r");
+    if (dePipe) {
+        char deBuffer[256];
+        char sessionType[256] = "";
+        char sessionDesktop[256] = "";
+
+        while (fgets(deBuffer, sizeof(deBuffer), dePipe)) {
             // Trim newline character if present
-            gpuBuffer[strcspn(gpuBuffer, "\n")] = 0;
-    
-            // Parse the CSV line
-            sscanf(gpuBuffer, "%[^,], %[^,], %d, %d, %d, %d, %d, %d",
-                   gpuModel, driverVersion, &memoryTotal, &memoryUsed, &memoryFree,
-                   &utilizationGpu, &utilizationMemory, &temperatureGpu);
+            deBuffer[strcspn(deBuffer, "\n")] = 0;
+
+            // Parse the environment variable line
+            sscanf(deBuffer, "XDG_SESSION_TYPE=%s", sessionType);
+            sscanf(deBuffer, "XDG_CURRENT_DESKTOP=%s", sessionDesktop);
         }
-        pclose(gpuPipe);
-    
-        // Remove "NVIDIA " prefix from gpuModel if present
-        if (strncmp(gpuModel, "NVIDIA ", 7) == 0) {
-            memmove(gpuModel, gpuModel + 7, strlen(gpuModel) - 6);
+        pclose(dePipe);
+
+        // Check if XDG_CURRENT_DESKTOP is KDE
+        if (strcmp(sessionDesktop, "KDE") == 0) {
+            char command[100];
+            sprintf(command, "plasmashell --version | awk '{print $2}'");
+            FILE* versionPipe = popen(command, "r");
+            if (versionPipe) {
+                char versionBuffer[256];
+                fgets(versionBuffer, sizeof(versionBuffer), versionPipe);
+                pclose(versionPipe);
+                mvwprintw(pad, line++, 1, "DE: %s", sessionDesktop);
+                mvwprintw(pad, line++, 1, "WM: KWin");
+                mvwprintw(pad, line++, 1, "%s Version: %s", sessionDesktop, versionBuffer);
+                mvwprintw(pad, line++, 1, "Session Type: %s", sessionType);
+            }
+        } else if (strcmp(sessionDesktop, "GNOME") == 0) {
+            char command[100];
+            sprintf(command, "gnome-shell --version | awk '{print $3}'");
+            FILE* versionPipe = popen(command, "r");
+            if (versionPipe) {
+                char versionBuffer[256];
+                fgets(versionBuffer, sizeof(versionBuffer), versionPipe);
+                pclose(versionPipe);
+                mvwprintw(pad, line++, 1, "DE: %s", sessionDesktop);
+                mvwprintw(pad, line++, 1, "WM: Mutter");
+                mvwprintw(pad, line++, 1, "%s Version: %s", sessionDesktop, versionBuffer);
+                mvwprintw(pad, line++, 1, "Session Type: %s", sessionType);
+            }
         }
-    
-        // Print GPU information within the pad
-        mvwprintw(pad, line++, 1, "GPU Vendor: %s", gpuVendor);
-        mvwprintw(pad, line++, 1, "GPU Model: %s", gpuModel);
-        mvwprintw(pad, line++, 1, "Driver Version: %s", driverVersion);
-        mvwprintw(pad, line++, 1, "Total Memory: %d MiB", memoryTotal);
-        mvwprintw(pad, line++, 1, "Used Memory: %d MiB", memoryUsed);
-        mvwprintw(pad, line++, 1, "Free Memory: %d MiB", memoryFree);
-        mvwprintw(pad, line++, 1, "GPU Utilization: %d%%", utilizationGpu);
-        mvwprintw(pad, line++, 1, "Memory Utilization: %d%%", utilizationMemory);
-        mvwprintw(pad, line++, 1, "GPU Temperature: %d°C", temperatureGpu);
-    } else {
-        mvwprintw(pad, line++, 1, "Failed to retrieve GPU information");
     }
 
     // Refresh the pad to show the changes within padWin

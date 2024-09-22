@@ -5,14 +5,22 @@ CC = x86_64-w64-mingw32-gcc
 CFLAGS = -Wall -g
 
 # Bağlama bayrakları (ncurses kütüphanesi için)
-LDFLAGS = -lncurses
+LDFLAGS = -lncursesw
 
 # Hedef dosya
-TARGET_DIR = out
+TARGET_DIR = bin
 TARGET = $(TARGET_DIR)/main
 
 # Kaynak dosyalar
-SRCS = main.c hwinfo/hwinfo.c hwinfo/cpu.c hwinfo/gpu.c hwinfo/storage.c swinfo/swinfo.c swinfo/user.c swinfo/de.c swinfo/system.c
+SRCS = src/main.c \
+src/hwinfo.c \
+src/cpu.c \
+src/gpu.c \
+src/storage.c \
+src/swinfo.c \
+src/user.c \
+src/de.c \
+src/system.c
 
 # Nesne dosyaları (kaynak dosyalar ile aynı ada sahip .o dosyaları)
 OBJS = $(SRCS:.c=.o)
@@ -32,4 +40,4 @@ $(TARGET): $(OBJS)
 # Hedef: Temizlik işlemi (main ve *.o dosyaları silinir, .c dosyaları korunur)
 clean:
 	rm -f $(OBJS) $(TARGET)
-
+	@echo temizlendi

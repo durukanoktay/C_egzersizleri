@@ -1,10 +1,9 @@
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
 #include <ncurses.h>
-#include "de.h"
+#include "../inc/user.h"
 
-void displayDEInfo() {
+void displayUserInfo() {
     initscr();
     noecho();
     curs_set(FALSE);
@@ -34,53 +33,40 @@ void displayDEInfo() {
     WINDOW *pad = newpad(padHeight, padWidth);
 
     int line = 0;
-    mvwprintw(pad, line++, 1, "Desktop Environment Information: ");
+    mvwprintw(pad, line++, 1, "User Information: ");
     line++;
 
-    FILE* dePipe = popen("env", "r");
-    if (dePipe) {
-        char deBuffer[256];
-        char sessionType[256] = "";
-        char sessionDesktop[256] = "";
+    FILE* envPipe = popen("env", "r");
+    if (envPipe) {
+        char envBuffer[256];
+        char user[256] = "";
+        char hostname[256] = "";
+        char homeFolder[256] = "";
+        char shell[256] = "";
 
-        while (fgets(deBuffer, sizeof(deBuffer), dePipe)) {
+        while (fgets(envBuffer, sizeof(envBuffer), envPipe)) {
             // Trim newline character if present
-            deBuffer[strcspn(deBuffer, "\n")] = 0;
+            envBuffer[strcspn(envBuffer, "\n")] = 0;
 
-            // Parse the environment variable line
-            sscanf(deBuffer, "XDG_SESSION_TYPE=%s", sessionType);
-            sscanf(deBuffer, "XDG_CURRENT_DESKTOP=%s", sessionDesktop);
-        }
-        pclose(dePipe);
-
-        // Check if XDG_CURRENT_DESKTOP is KDE
-        if (strcmp(sessionDesktop, "KDE") == 0) {
-            char command[100];
-            sprintf(command, "plasmashell --version | awk '{print $2}'");
-            FILE* versionPipe = popen(command, "r");
-            if (versionPipe) {
-                char versionBuffer[256];
-                fgets(versionBuffer, sizeof(versionBuffer), versionPipe);
-                pclose(versionPipe);
-                mvwprintw(pad, line++, 1, "DE: %s", sessionDesktop);
-                mvwprintw(pad, line++, 1, "WM: KWin");
-                mvwprintw(pad, line++, 1, "%s Version: %s", sessionDesktop, versionBuffer);
-                mvwprintw(pad, line++, 1, "Session Type: %s", sessionType);
-            }
-        } else if (strcmp(sessionDesktop, "GNOME") == 0) {
-            char command[100];
-            sprintf(command, "gnome-shell --version | awk '{print $3}'");
-            FILE* versionPipe = popen(command, "r");
-            if (versionPipe) {
-                char versionBuffer[256];
-                fgets(versionBuffer, sizeof(versionBuffer), versionPipe);
-                pclose(versionPipe);
-                mvwprintw(pad, line++, 1, "DE: %s", sessionDesktop);
-                mvwprintw(pad, line++, 1, "WM: Mutter");
-                mvwprintw(pad, line++, 1, "%s Version: %s", sessionDesktop, versionBuffer);
-                mvwprintw(pad, line++, 1, "Session Type: %s", sessionType);
+            // Parse the environment variable
+            if (strncmp(envBuffer, "USER=", 5) == 0) {
+                strncpy(user, envBuffer + 5, sizeof(user) - 1);
+            } else if (strncmp(envBuffer, "HOSTNAME=", 9) == 0) {
+                strncpy(hostname, envBuffer + 9, sizeof(hostname) - 1);
+            } else if (strncmp(envBuffer, "HOME=", 5) == 0) {
+                strncpy(homeFolder, envBuffer + 5, sizeof(homeFolder) - 1);
+            } else if (strncmp(envBuffer, "SHELL=", 6) == 0) {
+                strncpy(shell, envBuffer + 6, sizeof(shell) - 1);
             }
         }
+        pclose(envPipe);
+
+        mvwprintw(pad, line++, 1, "User: %s", user);
+        mvwprintw(pad, line++, 1, "Hostname: %s", hostname);
+        mvwprintw(pad, line++, 1, "Home Folder: %s", homeFolder);
+        mvwprintw(pad, line++, 1, "Shell: %s", shell); // Add shell information
+    } else {
+        mvwprintw(pad, line++, 1, "Failed to retrieve environment information");
     }
 
     // Refresh the pad to show the changes within padWin
